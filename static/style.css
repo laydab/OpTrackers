@@ -579,6 +579,20 @@ tbody tr:last-child td { border-bottom: none; }
 .form-hint { font-size: .78rem; color: var(--text-tertiary); margin-top: 4px; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 
+/* Toggle Switch (Radio Buttons) */
+.toggle-switch {
+    display: inline-flex; align-items: center; gap: 6px;
+    cursor: pointer; font-size: .85rem; font-weight: 500;
+    color: var(--text-secondary); padding: 4px 8px; border-radius: var(--radius-sm);
+    transition: all var(--transition);
+}
+.toggle-switch:hover { color: var(--text-primary); background: var(--border-light); }
+.toggle-switch input[type="radio"] { cursor: pointer; accent-color: var(--color-primary); }
+.toggle-switch:has(input:checked) {
+    background: white; color: var(--color-primary);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05); font-weight: 600;
+}
+
 /* ---------- Search & Filters ---------- */
 .filter-bar {
     display: flex; align-items: center; gap: 10px;

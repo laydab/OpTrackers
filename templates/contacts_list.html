@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Contacts — OpTracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Contacts</h1>
+        <p class="subtitle">Browse and manage all contact persons</p>
+    </div>
+    <a href="{{ url_for('new_contact') }}" class="btn btn--primary">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        New Contact
+    </a>
+</div>
+
+<div class="card" style="padding:0; overflow:hidden;">
+    {% if contacts %}
+    <div class="table-wrapper" style="border:none;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Company</th>
+                    <th>Email / Phone</th>
+                    <th>LinkedIn</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in contacts %}
+                <tr>
+                    <td>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div class="contact-avatar">{{ c.fullname[0] }}</div>
+                            <span class="table-link">{{ c.fullname }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('company_detail', company_id=c.companyid) }}" style="text-decoration:none; color:inherit;">
+                            {{ c.company_name }}
+                        </a>
+                    </td>
+                    <td class="table-secondary">
+                        <div style="display:flex; flex-direction:column; gap:2px;">
+                            <span>{{ c.email or '—' }}</span>
+                            {% if c.phone %}<span class="text-sm text-muted">{{ c.phone }}</span>{% endif %}
+                        </div>
+                    </td>
+                    <td class="table-secondary">
+                        {% if c.linkedinurl %}
+                        <a href="{{ c.linkedinurl }}" target="_blank" style="text-decoration:underline;">Profile ↗</a>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        <div class="table-actions">
+                            <a href="{{ url_for('edit_contact', contact_id=c.contactid) }}" class="btn btn--ghost btn--sm">Edit</a>
+                            <form action="{{ url_for('delete_contact', contact_id=c.contactid) }}" method="POST" style="display:inline;" onsubmit="return confirm('Delete this contact?');">
+                                <button type="submit" class="btn btn--ghost btn--sm" style="color:var(--color-danger-text);">Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+        <div class="empty-state-text">No contacts found. Add people you've met.</div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

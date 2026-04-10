@@ -12,14 +12,54 @@
 
 <div class="card form-card">
     <form method="POST" action="{{ url_for('new_application') }}" id="newAppForm">
-        <div class="form-group">
-            <label class="form-label" for="posting_id">Job Posting *</label>
-            <select name="posting_id" id="posting_id" class="form-select" required>
-                <option value="">Select a posting…</option>
-                {% for p in postings %}
-                <option value="{{ p.postingid }}">{{ p.jobtitle }} — {{ p.company_name }}</option>
-                {% endfor %}
-            </select>
+        <div class="toggle-container" style="margin-bottom:20px; display:flex; align-items:center; gap:12px; background:var(--bg-secondary); padding:8px 12px; border-radius:8px;">
+            <span class="text-sm font-medium">Job Selection:</span>
+            <label class="toggle-switch">
+                <input type="radio" name="job_mode" value="existing" checked>
+                <span>Select Existing</span>
+            </label>
+            <label class="toggle-switch">
+                <input type="radio" name="job_mode" value="new">
+                <span>➕ Create New</span>
+            </label>
+        </div>
+
+        <div id="section-existing-job">
+            <div class="form-group">
+                <label class="form-label" for="posting_id">Select Job Posting *</label>
+                <select name="posting_id" id="posting_id" class="form-select" required>
+                    <option value="">Select a posting…</option>
+                    {% for p in postings %}
+                    <option value="{{ p.postingid }}">{{ p.jobtitle }} — {{ p.company_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div id="section-new-job" style="display:none; background:var(--bg-secondary); border:1px solid var(--border-light); border-radius:8px; padding:16px; margin-bottom:20px;">
+            <h3 class="section-title mb-1" style="font-size:1rem; border-bottom:1px solid var(--border); padding-bottom:8px;">1. Company Details</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="new_company_name">Company Name *</label>
+                    <input type="text" name="new_company_name" id="new_company_name" class="form-input" placeholder="e.g. Stripe">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="new_company_location">HQ Location</label>
+                    <input type="text" name="new_company_location" id="new_company_location" class="form-input" placeholder="e.g. San Francisco">
+                </div>
+            </div>
+            
+            <h3 class="section-title mb-1 mt-2" style="font-size:1rem; border-bottom:1px solid var(--border); padding-bottom:8px;">2. Job Details</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="new_job_title">Job Title *</label>
+                    <input type="text" name="new_job_title" id="new_job_title" class="form-input" placeholder="e.g. Software Engineer">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="new_job_location">Job Location</label>
+                    <input type="text" name="new_job_location" id="new_job_location" class="form-input" placeholder="e.g. Remote">
+                </div>
+            </div>
         </div>
         <div class="form-row">
             <div class="form-group">
@@ -60,7 +100,7 @@
 
         <!-- Cover Letter (optional) -->
         <div style="border-top:1px solid var(--border); padding-top:16px; margin-top:16px;">
-            <h3 class="section-title mb-1">✉️ Cover Letter <span class="text-muted text-sm">(optional)</span></h3>
+            <h3 class="section-title mb-1"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="display:inline; vertical-align:-2px;"><path d="M2 4a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V4z" stroke="currentColor" stroke-width="1.2"/><path d="M2 4l6 4.5L14 4" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg> Cover Letter <span class="text-muted text-sm">(optional)</span></h3>
             <div class="form-row">
                 <div class="form-group">
                     <label class="form-label" for="cl_filename">File Name</label>
@@ -79,4 +119,36 @@
         </div>
     </form>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const radios = document.querySelectorAll('input[name="job_mode"]');
+        const sectionExisting = document.getElementById('section-existing-job');
+        const sectionNew = document.getElementById('section-new-job');
+        const postingIdSelect = document.getElementById('posting_id');
+        const newCompanyNameInput = document.getElementById('new_company_name');
+        const newJobTitleInput = document.getElementById('new_job_title');
+
+        radios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                if (e.target.value === 'existing') {
+                    sectionExisting.style.display = 'block';
+                    sectionNew.style.display = 'none';
+                    postingIdSelect.required = true;
+                    newCompanyNameInput.required = false;
+                    newJobTitleInput.required = false;
+                } else {
+                    sectionExisting.style.display = 'none';
+                    sectionNew.style.display = 'block';
+                    postingIdSelect.required = false;
+                    postingIdSelect.value = '';
+                    newCompanyNameInput.required = true;
+                    newJobTitleInput.required = true;
+                }
+            });
+        });
+    });
+</script>
 {% endblock %}

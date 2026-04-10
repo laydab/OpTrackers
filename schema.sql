@@ -22,11 +22,20 @@ DROP TABLE IF EXISTS Company CASCADE;
 -- TABLE DEFINITIONS
 -- ============================================================================
 
+CREATE TABLE App_User (
+    UserID       SERIAL PRIMARY KEY,
+    FullName     VARCHAR(255) NOT NULL,
+    Email        VARCHAR(255) UNIQUE NOT NULL,
+    PasswordHash VARCHAR(255) NOT NULL
+);
+
 CREATE TABLE Company (
     CompanyID   INT PRIMARY KEY,
     Name        VARCHAR(255) NOT NULL,
     Location    VARCHAR(255),
-    Website     VARCHAR(255)
+    Website     VARCHAR(255),
+    UserID      INT,
+    FOREIGN KEY (UserID) REFERENCES App_User(UserID) ON DELETE CASCADE
 );
 
 -- Multivalued attribute (Industry) modeled as separate table
@@ -55,7 +64,9 @@ CREATE TABLE Application (
     Status          VARCHAR(50) CHECK (Status IN ('Draft','Submitted','Interview','Offer','Rejected')),
     OfferDeadline   DATE,
     PostingID       INT NOT NULL,
-    FOREIGN KEY (PostingID) REFERENCES Job_Posting(PostingID) ON DELETE CASCADE
+    UserID          INT,
+    FOREIGN KEY (PostingID) REFERENCES Job_Posting(PostingID) ON DELETE CASCADE,
+    FOREIGN KEY (UserID) REFERENCES App_User(UserID) ON DELETE CASCADE
 );
 
 -- Weak entity: depends on Application
@@ -108,7 +119,9 @@ CREATE TABLE Contact_Person (
     Phone       VARCHAR(20),
     LinkedInURL VARCHAR(255),
     CompanyID   INT,
-    FOREIGN KEY (CompanyID) REFERENCES Company(CompanyID) ON DELETE SET NULL
+    UserID      INT,
+    FOREIGN KEY (CompanyID) REFERENCES Company(CompanyID) ON DELETE SET NULL,
+    FOREIGN KEY (UserID) REFERENCES App_User(UserID) ON DELETE CASCADE
 );
 
 CREATE TABLE Participated_In (
@@ -191,12 +204,15 @@ CREATE TRIGGER trg_set_upload_date
 -- DATA POPULATION (≥ 5 tuples per table)
 -- ============================================================================
 
+INSERT INTO App_User (UserID, FullName, Email, PasswordHash) VALUES
+    (1, 'Demo User', 'demo@optracker.com', 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6$accbf01031d30e38aaaa2e9e5a2f6df00d62a2e3912c33ad393495d18ca97ee2');
+    
 INSERT INTO Company VALUES
-    (1, 'Google',    'Mountain View, CA', 'https://google.com'),
-    (2, 'Meta',      'Menlo Park, CA',    'https://meta.com'),
-    (3, 'Amazon',    'Seattle, WA',       'https://amazon.com'),
-    (4, 'Apple',     'Cupertino, CA',     'https://apple.com'),
-    (5, 'Microsoft', 'Redmond, WA',       'https://microsoft.com');
+    (1, 'Google',    'Mountain View, CA', 'https://google.com',  1),
+    (2, 'Meta',      'Menlo Park, CA',    'https://meta.com',    1),
+    (3, 'Amazon',    'Seattle, WA',       'https://amazon.com',  1),
+    (4, 'Apple',     'Cupertino, CA',     'https://apple.com',   1),
+    (5, 'Microsoft', 'Redmond, WA',       'https://microsoft.com', 1);
 
 INSERT INTO Company_Industry VALUES
     (1, 'Tech'),    (1, 'AI'),
@@ -214,12 +230,12 @@ INSERT INTO Job_Posting VALUES
     (106, 'ML Engineer',      'Mountain View','Build ML pipelines.',     '160k+',     '2024-02-01', '2024-03-01', 1);
 
 INSERT INTO Application VALUES
-    (201, '2024-01-15', 'Interview',  NULL,         101),
-    (202, '2024-01-20', 'Submitted',  NULL,         102),
-    (203, '2024-01-25', 'Offer',      '2024-03-01', 103),
-    (204, '2024-01-30', 'Rejected',   NULL,         104),
-    (205, '2024-02-05', 'Draft',      NULL,         105),
-    (206, '2024-02-10', 'Interview',  NULL,         106);
+    (201, '2024-01-15', 'Interview',  NULL,         101, 1),
+    (202, '2024-01-20', 'Submitted',  NULL,         102, 1),
+    (203, '2024-01-25', 'Offer',      '2024-03-01', 103, 1),
+    (204, '2024-01-30', 'Rejected',   NULL,         104, 1),
+    (205, '2024-02-05', 'Draft',      NULL,         105, 1),
+    (206, '2024-02-10', 'Interview',  NULL,         106, 1);
 
 INSERT INTO Application_Notes VALUES
     (201, 'Follow up next week.'),
@@ -258,11 +274,11 @@ INSERT INTO Interview_Round VALUES
     (206, 1, '2024-03-01', '10:00', 'Technical',    'ML system design went well.');
 
 INSERT INTO Contact_Person VALUES
-    (401, 'Alice Smith',   'alice@google.com',   '555-0101', 'https://linkedin.com/in/alice',   1),
-    (402, 'Bob Brown',     'bob@meta.com',       '555-0102', 'https://linkedin.com/in/bob',     2),
-    (403, 'Charlie Davis', 'charlie@amazon.com', '555-0103', 'https://linkedin.com/in/charlie', 3),
-    (404, 'Diana Evans',   'diana@apple.com',    '555-0104', 'https://linkedin.com/in/diana',   4),
-    (405, 'Edward Frank',  'edward@ms.com',      '555-0105', 'https://linkedin.com/in/edward',  5);
+    (401, 'Alice Smith',   'alice@google.com',   '555-0101', 'https://linkedin.com/in/alice',   1, 1),
+    (402, 'Bob Brown',     'bob@meta.com',       '555-0102', 'https://linkedin.com/in/bob',     2, 1),
+    (403, 'Charlie Davis', 'charlie@amazon.com', '555-0103', 'https://linkedin.com/in/charlie', 3, 1),
+    (404, 'Diana Evans',   'diana@apple.com',    '555-0104', 'https://linkedin.com/in/diana',   4, 1),
+    (405, 'Edward Frank',  'edward@ms.com',      '555-0105', 'https://linkedin.com/in/edward',  5, 1);
 
 INSERT INTO Participated_In VALUES
     (401, 201, 1), (401, 201, 2),

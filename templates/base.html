@@ -52,38 +52,33 @@
                 </svg>
                 <span>Applications</span>
             </a>
-            <a href="{{ url_for('companies') }}"
-                class="nav-item {% if request.endpoint in ['companies', 'company_detail'] %}active{% endif %}"
-                id="nav-companies">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                    <path d="M3 17V5a2 2 0 012-2h4l2 2h4a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2z"
-                        stroke="currentColor" stroke-width="1.5" />
-                </svg>
-                <span>Companies</span>
-            </a>
+                <a href="{{ url_for('companies') }}" class="nav-item {% if request.endpoint in ['companies', 'company_detail'] %}active{% endif %}" id="nav-companies">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 17V5a2 2 0 012-2h4l2 2h4a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" stroke-width="1.5"/></svg>
+                    <span>Companies</span>
+                </a>
+                <a href="{{ url_for('contacts_page') }}" class="nav-item {% if request.endpoint == 'contacts_page' %}active{% endif %}" id="nav-contacts">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M4 20c0-4 4-6 6-6h-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                    <span>Contacts</span>
+                </a>
+                <a href="{{ url_for('interviews_page') }}" class="nav-item {% if request.endpoint == 'interviews_page' %}active{% endif %}" id="nav-interviews">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M6 5h8M6 10h8M6 15h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="10" cy="10" r="9" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2 3"/></svg>
+                    <span>Interviews</span>
+                </a>
+                <a href="{{ url_for('documents_page') }}" class="nav-item {% if request.endpoint == 'documents_page' %}active{% endif %}" id="nav-documents">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 2h7l5 5v11a1 1 0 01-1 1H4a1 1 0 01-1-1V3a1 1 0 011-1z" stroke="currentColor" stroke-width="1.5"/><path d="M11 2v5h5" stroke="currentColor" stroke-width="1.5"/></svg>
+                    <span>Documents</span>
+                </a>
 
-            <div class="nav-divider"></div>
-            <span class="nav-label">Quick Add</span>
-
-            <a href="{{ url_for('new_application') }}" class="nav-item nav-item--secondary" id="nav-new-app">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                    <path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-                </svg>
-                <span>New Application</span>
-            </a>
-            <a href="{{ url_for('new_company') }}" class="nav-item nav-item--secondary" id="nav-new-company">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                    <path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-                </svg>
-                <span>New Company</span>
-            </a>
-            <a href="{{ url_for('new_contact') }}" class="nav-item nav-item--secondary" id="nav-new-contact">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                    <path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-                </svg>
-                <span>New Contact</span>
-            </a>
-        </nav>
+            </nav>
+            
+            <!-- Quick Add -->
+            <div class="sidebar-label">Quick Add</div>
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('new_application') }}" class="nav-item">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                    New Application
+                </a>
+            </nav>
 
         {% if current_user %}
         <div class="sidebar-user">
