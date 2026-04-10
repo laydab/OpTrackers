@@ -198,11 +198,13 @@ def get_company(company_id):
     return row
 
 def get_postings(search=None):
+    uid = session.get("user_id")
     rows = query_db("""
         SELECT jp.*, c.Name AS company_name
         FROM Job_Posting jp JOIN Company c ON jp.CompanyID = c.CompanyID
+        WHERE c.UserID = %s
         ORDER BY jp.DatePosted DESC
-    """)
+    """, (uid,))
     postings = rows or []
     if search:
         s = search.lower()
@@ -211,11 +213,12 @@ def get_postings(search=None):
 
 
 def get_posting(posting_id):
+    uid = session.get("user_id")
     return query_db("""
         SELECT jp.*, c.Name AS company_name
         FROM Job_Posting jp JOIN Company c ON jp.CompanyID = c.CompanyID
-        WHERE jp.PostingID = %s
-    """, (posting_id,), one=True)
+        WHERE jp.PostingID = %s AND c.UserID = %s
+    """, (posting_id, uid), one=True)
 
 def get_applications():
     uid = session.get("user_id")
@@ -505,13 +508,13 @@ def new_application():
             uid = session.get("user_id")
             result = query_db(
                 "INSERT INTO Company (Name, Location, Website, UserID) VALUES (%s, %s, %s, %s) RETURNING CompanyID",
-                (new_company_name, comp_location, comp_website, uid), commit=False,
+                (new_company_name, comp_location, comp_website, uid), commit=True,
             )
             company_id = result[0].get("companyid") if result else 1
             
             for ind in [i.strip() for i in comp_industries.split(",") if i.strip()]:
                 query_db("INSERT INTO Company_Industry (CompanyID, Industry) VALUES (%s, %s)",
-                         (company_id, ind), commit=False)
+                         (company_id, ind), commit=True)
 
             # Create the job posting for this company
             job_title = request.form.get("new_job_title", "").strip()
@@ -706,12 +709,12 @@ def new_company():
         uid = session.get("user_id")
         result = query_db(
             "INSERT INTO Company (Name, Location, Website, UserID) VALUES (%s, %s, %s, %s) RETURNING CompanyID",
-            (name, location, website, uid), commit=False,
+            (name, location, website, uid), commit=True,
         )
         company_id = result[0].get("companyid") if result else 1
         for ind in [i.strip() for i in industries.split(",") if i.strip()]:
             query_db("INSERT INTO Company_Industry (CompanyID, Industry) VALUES (%s, %s)",
-                     (company_id, ind), commit=False)
+                     (company_id, ind), commit=True)
         flash("Company added.", "success")
         return redirect(url_for("companies"))
     return render_template("form_company.html")
@@ -768,9 +771,9 @@ def new_job(company_id):
 def edit_job(company_id, posting_id):
     company = get_company(company_id)
     posting = get_posting(posting_id)
-    if not posting:
-        flash("Job posting not found.", "error")
-        return redirect(url_for("company_detail", company_id=company_id))
+    if not company or not posting:
+        flash("Job posting or company not found.", "error")
+        return redirect(url_for("companies"))
     if request.method == "POST":
         query_db(
             """UPDATE Job_Posting SET JobTitle=%s, Location=%s, Description=%s,

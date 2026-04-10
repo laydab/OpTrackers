@@ -83,7 +83,7 @@
                     {% set company_match = companies|selectattr("companyid", "equalto", posting.companyid)|list %}
                     {% if not request.args.get('search') or company_match|length > 0 %}
                     <tr id="posting-{{ posting.postingid }}">
-                        <td class="table-link">{{ posting.jobtitle }}</td>
+                        <td><a href="{{ url_for('edit_job', company_id=posting.companyid, posting_id=posting.postingid) }}" class="table-link">{{ posting.jobtitle }}</a></td>
                         <td class="table-secondary">{{ posting.company_name }}</td>
                         <td class="table-secondary">{{ posting.location }}</td>
                         <td class="table-secondary">{{ posting.salaryrange or '—' }}</td>
