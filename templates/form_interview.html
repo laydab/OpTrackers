@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Add Interview Round — OpTracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <a href="{{ url_for('applications') }}" class="btn btn--ghost btn--sm mb-1">← Back</a>
+        <h1>Add Interview Round</h1>
+        <p class="subtitle">Log an interview for an application</p>
+    </div>
+</div>
+
+<div class="card form-card">
+    <form method="POST" action="{{ url_for('new_interview') }}" id="newInterviewForm">
+        <div class="form-group">
+            <label class="form-label" for="app_id">Application *</label>
+            <select name="app_id" id="app_id" class="form-select" required>
+                <option value="">Select an application…</option>
+                {% for a in applications %}
+                <option value="{{ a.appid }}" {% if request.args.get('app_id')|int == a.appid %}selected{% endif %}>{{ a.jobtitle }} — {{ a.company_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" for="round_number">Round Number *</label>
+                <input type="number" name="round_number" id="round_number" class="form-input" min="1" value="1" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="format">Format</label>
+                <select name="format" id="format" class="form-select">
+                    <option value="Phone Screen">Phone Screen</option>
+                    <option value="Technical">Technical</option>
+                    <option value="Behavioral">Behavioral</option>
+                    <option value="On-site">On-site</option>
+                    <option value="Take-home">Take-home</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" for="date">Date</label>
+                <input type="date" name="date" id="date" class="form-input">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="time">Time</label>
+                <input type="time" name="time" id="time" class="form-input">
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="feedback">Feedback / Notes</label>
+            <textarea name="feedback" id="feedback" class="form-textarea" placeholder="How did the interview go? Any notes for next time…"></textarea>
+        </div>
+        {% if contacts %}
+        <div class="form-group" style="border-top:1px solid var(--border); padding-top:16px; margin-top:8px;">
+            <label class="form-label">Participants <span class="text-muted text-sm">(optional)</span></label>
+            <div style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">
+                {% for c in contacts %}
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:.85rem;">
+                    <input type="checkbox" name="contact_ids" value="{{ c.contactid }}">
+                    {{ c.fullname }} <span class="text-muted text-sm">· {{ c.company_name }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        <div class="form-actions">
+            <button type="submit" class="btn btn--primary" id="btn-submit-interview">Add Round</button>
+            <a href="{{ url_for('applications') }}" class="btn btn--secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

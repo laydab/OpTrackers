@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ company.name }} — OpTracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <a href="{{ url_for('company_detail', company_id=company.companyid) }}" class="btn btn--ghost btn--sm mb-1">← Back</a>
+        <h1>Edit Company</h1>
+        <p class="subtitle">{{ company.name }}</p>
+    </div>
+</div>
+
+<div class="card form-card">
+    <form method="POST" action="{{ url_for('edit_company', company_id=company.companyid) }}" id="editCompanyForm">
+        <div class="form-group">
+            <label class="form-label" for="name">Company Name *</label>
+            <input type="text" name="name" id="name" class="form-input" required value="{{ company.name }}">
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" for="location">Location</label>
+                <input type="text" name="location" id="location" class="form-input" value="{{ company.get('location', '') }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="website">Website</label>
+                <input type="url" name="website" id="website" class="form-input" value="{{ company.get('website', '') }}">
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="industries">Industries</label>
+            <input type="text" name="industries" id="industries" class="form-input"
+                   value="{{ company.get('industries', [])|join(', ') }}">
+            <div class="form-hint">Comma-separated list (e.g. FinTech, Payments)</div>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn--primary" id="btn-save-company">Save Changes</button>
+            <a href="{{ url_for('company_detail', company_id=company.companyid) }}" class="btn btn--secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

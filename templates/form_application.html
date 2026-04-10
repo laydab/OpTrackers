@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}New Application — OpTracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <a href="{{ url_for('applications') }}" class="btn btn--ghost btn--sm mb-1">← Back</a>
+        <h1>New Application</h1>
+        <p class="subtitle">Link an application to a job posting</p>
+    </div>
+</div>
+
+<div class="card form-card">
+    <form method="POST" action="{{ url_for('new_application') }}" id="newAppForm">
+        <div class="form-group">
+            <label class="form-label" for="posting_id">Job Posting *</label>
+            <select name="posting_id" id="posting_id" class="form-select" required>
+                <option value="">Select a posting…</option>
+                {% for p in postings %}
+                <option value="{{ p.postingid }}">{{ p.jobtitle }} — {{ p.company_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" for="status">Status</label>
+                <select name="status" id="status" class="form-select">
+                    <option value="Draft">Draft</option>
+                    <option value="Submitted">Submitted</option>
+                    <option value="Interview">Interview</option>
+                    <option value="Offer">Offer</option>
+                    <option value="Rejected">Rejected</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="submission_date">Submission Date</label>
+                <input type="date" name="submission_date" id="submission_date" class="form-input">
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="offer_deadline">Offer Deadline</label>
+            <input type="date" name="offer_deadline" id="offer_deadline" class="form-input">
+            <div class="form-hint">Set if you've received an offer with a response deadline.</div>
+        </div>
+
+        <!-- Resume (optional) -->
+        <div style="border-top:1px solid var(--border); padding-top:16px; margin-top:16px;">
+            <h3 class="section-title mb-1">📄 Resume <span class="text-muted text-sm">(optional)</span></h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="resume_filename">File Name</label>
+                    <input type="text" name="resume_filename" id="resume_filename" class="form-input" placeholder="e.g. Resume_v3_SWE.pdf">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="resume_version">Version</label>
+                    <input type="text" name="resume_version" id="resume_version" class="form-input" placeholder="e.g. 3.0">
+                </div>
+            </div>
+        </div>
+
+        <!-- Cover Letter (optional) -->
+        <div style="border-top:1px solid var(--border); padding-top:16px; margin-top:16px;">
+            <h3 class="section-title mb-1">✉️ Cover Letter <span class="text-muted text-sm">(optional)</span></h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="cl_filename">File Name</label>
+                    <input type="text" name="cl_filename" id="cl_filename" class="form-input" placeholder="e.g. CL_Stripe.pdf">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="cl_tailored">Tailored For</label>
+                    <input type="text" name="cl_tailored" id="cl_tailored" class="form-input" placeholder="e.g. Stripe">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn--primary" id="btn-submit-app">Create Application</button>
+            <a href="{{ url_for('applications') }}" class="btn btn--secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

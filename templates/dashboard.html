@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — OpTracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Dashboard</h1>
+        <p class="subtitle">Your career search at a glance</p>
+    </div>
+    <a href="{{ url_for('new_application') }}" class="btn btn--primary" id="btn-new-app">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        New Application
+    </a>
+</div>
+
+<!-- Metric Cards -->
+<div class="metrics-grid">
+    <div class="card metric-card">
+        <div class="metric-label">Total Applications</div>
+        <div class="metric-value">{{ total }}</div>
+        <div class="metric-sub">Across all stages</div>
+    </div>
+    <div class="card metric-card">
+        <div class="metric-label">In Interview</div>
+        <div class="metric-value">{{ by_status.get('Interview', 0) }}</div>
+        <div class="metric-sub">Active processes</div>
+    </div>
+    <div class="card metric-card">
+        <div class="metric-label">Interview Rounds</div>
+        <div class="metric-value">{{ total_rounds }}</div>
+        <div class="metric-sub">Total rounds taken</div>
+    </div>
+    <div class="card metric-card">
+        <div class="metric-label">Offers Received</div>
+        <div class="metric-value">{{ offers }}</div>
+        <div class="metric-sub">{{ success_rate }}% success rate</div>
+    </div>
+    <div class="card metric-card">
+        <div class="metric-label">Pending Review</div>
+        <div class="metric-value">{{ by_status.get('Submitted', 0) }}</div>
+        <div class="metric-sub">Awaiting response</div>
+    </div>
+</div>
+
+<!-- Two-column layout -->
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+
+    <!-- Upcoming Interviews -->
+    <div class="section">
+        <div class="section-header">
+            <h2 class="section-title">Upcoming Interviews</h2>
+        </div>
+        <div class="card">
+            {% if upcoming_interviews %}
+            <div class="list">
+                {% for iv in upcoming_interviews %}
+                <a href="{{ url_for('application_detail', app_id=iv.appid) }}" class="list-item" id="interview-{{ iv.appid }}-{{ iv.roundnumber }}">
+                    <div class="list-icon list-icon--interview">R{{ iv.roundnumber }}</div>
+                    <div class="list-content">
+                        <div class="list-title">{{ iv.get('jobtitle', 'Interview') }}</div>
+                        <div class="list-meta">{{ iv.get('company_name', '') }} · {{ iv.format }}</div>
+                    </div>
+                    <div class="list-date">
+                        {{ iv.date.strftime('%b %d') if iv.date else 'TBD' }}
+                        {% if iv.time %}<br>{{ iv.time.strftime('%I:%M %p') }}{% endif %}
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">📅</div>
+                <div class="empty-state-text">No upcoming interviews</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Upcoming Deadlines / Offers -->
+    <div class="section">
+        <div class="section-header">
+            <h2 class="section-title">Offer Deadlines</h2>
+        </div>
+        <div class="card">
+            {% if upcoming_deadlines %}
+            <div class="list">
+                {% for app in upcoming_deadlines %}
+                <a href="{{ url_for('application_detail', app_id=app.appid) }}" class="list-item" id="deadline-{{ app.appid }}">
+                    <div class="list-icon list-icon--deadline">!</div>
+                    <div class="list-content">
+                        <div class="list-title">{{ app.jobtitle }}</div>
+                        <div class="list-meta">{{ app.company_name }}</div>
+                    </div>
+                    <div class="list-date">{{ app.offerdeadline.strftime('%b %d, %Y') }}</div>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">🎯</div>
+                <div class="empty-state-text">No pending offer deadlines</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Recent Applications -->
+<div class="section mt-3">
+    <div class="section-header">
+        <h2 class="section-title">Recent Applications</h2>
+        <a href="{{ url_for('applications') }}" class="btn btn--ghost btn--sm">View All →</a>
+    </div>
+    <div class="card" style="padding:0; overflow:hidden;">
+        <div class="table-wrapper" style="border:none;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Position</th>
+                        <th>Company</th>
+                        <th>Location</th>
+                        <th>Submitted</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for app in recent %}
+                    <tr id="recent-app-{{ app.appid }}">
+                        <td><a href="{{ url_for('application_detail', app_id=app.appid) }}" class="table-link">{{ app.jobtitle }}</a></td>
+                        <td class="table-secondary">{{ app.company_name }}</td>
+                        <td class="table-secondary">{{ app.location }}</td>
+                        <td class="table-secondary">{{ app.submissiondate.strftime('%b %d, %Y') if app.submissiondate else '—' }}</td>
+                        <td><span class="badge badge--{{ app.status|lower }}">{{ app.status }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Reporting Sections -->
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap: 20px;" class="mt-3">
+
+    <!-- Applications per Company -->
+    <div class="section">
+        <div class="section-header">
+            <h2 class="section-title">Applications per Company</h2>
+        </div>
+        <div class="card">
+            {% if apps_per_company %}
+            <div class="list">
+                {% for company, count in apps_per_company.items() %}
+                <div class="list-item" style="padding:10px 8px;">
+                    <div class="list-content">
+                        <div class="list-title" style="font-size:.85rem;">{{ company }}</div>
+                    </div>
+                    <span class="badge badge--submitted">{{ count }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-state-text">No applications yet</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Success Rate by Industry -->
+    <div class="section">
+        <div class="section-header">
+            <h2 class="section-title">Success by Industry</h2>
+        </div>
+        <div class="card">
+            {% if industry_stats %}
+            <div class="list">
+                {% for industry, stats in industry_stats.items() %}
+                <div class="list-item" style="padding:10px 8px;">
+                    <div class="list-content">
+                        <div class="list-title" style="font-size:.85rem;">{{ industry }}</div>
+                        <div class="list-meta" style="font-size:.75rem;">{{ stats.total }} app{{ 's' if stats.total != 1 }} · {{ stats.offers }} offer{{ 's' if stats.offers != 1 }}</div>
+                    </div>
+                    <span class="badge {% if stats.rate > 0 %}badge--offer{% else %}badge--draft{% endif %}">{{ stats.rate }}%</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-state-text">No industry data yet</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Aggregation Stats -->
+<div class="section mt-3">
+    <div class="section-header">
+        <h2 class="section-title">Aggregated Statistics</h2>
+    </div>
+    <div class="metrics-grid" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="card metric-card">
+            <div class="metric-label">Total Applications</div>
+            <div class="metric-value">{{ agg_stats.total_apps }}</div>
+        </div>
+        <div class="card metric-card">
+            <div class="metric-label">Companies Applied</div>
+            <div class="metric-value">{{ agg_stats.companies_applied }}</div>
+        </div>
+        <div class="card metric-card">
+            <div class="metric-label">Avg Apps/Company</div>
+            <div class="metric-value">{{ agg_stats.avg_per_company }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Division Query Result -->
+<div class="section mt-3">
+    <div class="section-header">
+        <h2 class="section-title">Full-Coverage Interviewers</h2>
+        <span class="text-muted text-sm">Contacts who attended every round of the applications they're involved in (division query)</span>
+    </div>
+    <div class="card">
+        {% if division_contacts %}
+        <div class="list">
+            {% for c in division_contacts %}
+            <div class="list-item" style="padding:10px 8px;">
+                <div class="contact-avatar">{{ c.fullname[0] }}</div>
+                <div class="list-content">
+                    <div class="list-title" style="font-size:.85rem;">{{ c.fullname }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-text">No contacts matched the division criteria</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

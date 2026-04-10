@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Companies — OpTracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Companies & Jobs</h1>
+        <p class="subtitle">Browse your target companies and open positions</p>
+    </div>
+    <a href="{{ url_for('new_company') }}" class="btn btn--primary" id="btn-new-company">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Add Company
+    </a>
+</div>
+
+<!-- Search & Filters -->
+<form class="filter-bar" method="GET" action="{{ url_for('companies') }}" id="companySearchForm">
+    <input type="text" name="search" class="search-input" placeholder="Search companies by name or location…" value="{{ request.args.get('search', '') }}" id="companySearch">
+    <input type="text" name="industry" class="form-input" style="max-width:200px;" placeholder="Filter by industry" value="{{ request.args.get('industry', '') }}" id="industryFilter">
+    <button type="submit" class="btn btn--secondary">Search</button>
+</form>
+
+<!-- Company Grid -->
+<div class="company-grid mb-2">
+    {% for company in companies %}
+    <a href="{{ url_for('company_detail', company_id=company.companyid) }}" class="card company-card card--clickable" id="company-{{ company.companyid }}">
+        <div class="company-name">{{ company.name }}</div>
+        <div class="company-location">📍 {{ company.location }}</div>
+        {% if company.get('industries') %}
+        <div class="company-tags">
+            {% for ind in company.industries %}
+            <span class="company-tag">{{ ind }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% set job_count = postings|selectattr("companyid", "equalto", company.companyid)|list|length %}
+        {% set contact_count = contacts|selectattr("companyid", "equalto", company.companyid)|list|length %}
+        <div class="flex items-center gap-sm mt-1" style="gap:14px;">
+            <span class="text-sm text-muted">{{ job_count }} posting{{ 's' if job_count != 1 }}</span>
+            <span class="text-sm text-muted">{{ contact_count }} contact{{ 's' if contact_count != 1 }}</span>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+
+{% if companies|length == 0 %}
+<div class="card">
+    <div class="empty-state">
+        <div class="empty-state-icon">🏢</div>
+        <div class="empty-state-text">No companies found. Try a different search or <a href="{{ url_for('new_company') }}" style="text-decoration:underline;">add one</a>.</div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Job Postings Table -->
+<div class="section mt-3">
+    <div class="section-header">
+        <h2 class="section-title">All Job Postings</h2>
+    </div>
+    <form class="filter-bar" method="GET" action="{{ url_for('companies') }}" style="margin-bottom:12px;" id="jobSearchForm">
+        <input type="text" name="job_search" class="search-input" placeholder="Search jobs by title or location…" value="{{ request.args.get('job_search', '') }}" id="jobSearch" style="max-width:300px;">
+        <button type="submit" class="btn btn--secondary">Search</button>
+        {% if request.args.get('job_search') %}
+        <a href="{{ url_for('companies') }}" class="btn btn--ghost btn--sm">Clear</a>
+        {% endif %}
+    </form>
+    <div class="card" style="padding:0; overflow:hidden;">
+        <div class="table-wrapper" style="border:none;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Job Title</th>
+                        <th>Company</th>
+                        <th>Location</th>
+                        <th>Salary</th>
+                        <th>Deadline</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for posting in postings %}
+                    {% set company_match = companies|selectattr("companyid", "equalto", posting.companyid)|list %}
+                    {% if not request.args.get('search') or company_match|length > 0 %}
+                    <tr id="posting-{{ posting.postingid }}">
+                        <td class="table-link">{{ posting.jobtitle }}</td>
+                        <td class="table-secondary">{{ posting.company_name }}</td>
+                        <td class="table-secondary">{{ posting.location }}</td>
+                        <td class="table-secondary">{{ posting.salaryrange or '—' }}</td>
+                        <td class="table-secondary">{{ posting.applicationdeadline.strftime('%b %d, %Y') if posting.applicationdeadline else '—' }}</td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

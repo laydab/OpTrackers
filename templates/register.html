@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account — OpTracker</title>
+    <meta name="description" content="Create your Professional Opportunity Tracker account.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="auth-body">
+    <div class="auth-container">
+        <div class="auth-card">
+            <!-- Logo -->
+            <div class="auth-logo">
+                <svg width="36" height="36" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="28" height="28" rx="8" fill="#404040"/>
+                    <path d="M8 14L12 18L20 10" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span class="auth-logo-text">OpTracker</span>
+            </div>
+
+            <h1 class="auth-title">Create your account</h1>
+            <p class="auth-subtitle">Start tracking your career opportunities</p>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="auth-flash-container">
+                {% for category, message in messages %}
+                <div class="flash flash--{{ category }}" role="alert">
+                    <span>{{ message }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            <form method="POST" action="{{ url_for('register') }}" class="auth-form" id="registerForm">
+                <div class="form-group">
+                    <label class="form-label" for="fullname">Full Name</label>
+                    <input class="form-input" type="text" id="fullname" name="fullname"
+                           placeholder="Jane Doe" required autocomplete="name" autofocus>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="email">Email Address</label>
+                    <input class="form-input" type="email" id="email" name="email"
+                           placeholder="you@example.com" required autocomplete="email">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="password">Password</label>
+                    <input class="form-input" type="password" id="password" name="password"
+                           placeholder="••••••••" required autocomplete="new-password" minlength="6">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="confirm_password">Confirm Password</label>
+                    <input class="form-input" type="password" id="confirm_password" name="confirm_password"
+                           placeholder="••••••••" required autocomplete="new-password">
+                </div>
+
+                <button type="submit" class="btn btn--primary auth-submit" id="registerButton">
+                    Create Account
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+            </form>
+
+            <p class="auth-footer">
+                Already have an account? <a href="{{ url_for('login') }}" class="auth-link" id="loginLink">Sign in</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

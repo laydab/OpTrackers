@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block title %}Applications — OpTracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Applications</h1>
+        <p class="subtitle">Track your application pipeline</p>
+    </div>
+    <a href="{{ url_for('new_application') }}" class="btn btn--primary" id="btn-new-app-page">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        New Application
+    </a>
+</div>
+
+<!-- Controls -->
+<div class="kanban-controls">
+    <div class="view-toggle">
+        <button class="active" id="kanbanToggle" onclick="switchView('kanban')">Board</button>
+        <button id="tableToggle" onclick="switchView('table')">Table</button>
+    </div>
+    <span class="text-muted text-sm">{{ applications|length }} applications total</span>
+</div>
+
+<!-- Filter / Sort Bar -->
+<form class="filter-bar" method="GET" action="{{ url_for('applications') }}" id="appFilterForm">
+    <input type="text" name="search" class="search-input" placeholder="Search by title or company…" value="{{ request.args.get('search', '') }}" id="appSearch" style="max-width:220px;">
+    <select name="status" class="form-select" style="max-width:150px;" id="appStatusFilter">
+        <option value="">All statuses</option>
+        {% for s in statuses %}
+        <option value="{{ s }}" {% if request.args.get('status') == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+    </select>
+    <select name="sort" class="form-select" style="max-width:160px;" id="appSort">
+        <option value="">Default sort</option>
+        <option value="date_desc" {% if request.args.get('sort') == 'date_desc' %}selected{% endif %}>Newest first</option>
+        <option value="date_asc" {% if request.args.get('sort') == 'date_asc' %}selected{% endif %}>Oldest first</option>
+        <option value="status" {% if request.args.get('sort') == 'status' %}selected{% endif %}>By status</option>
+    </select>
+    <button type="submit" class="btn btn--secondary">Apply</button>
+    {% if request.args.get('search') or request.args.get('status') or request.args.get('sort') %}
+    <a href="{{ url_for('applications') }}" class="btn btn--ghost btn--sm">Clear</a>
+    {% endif %}
+</form>
+
+<!-- Kanban Board View -->
+<div class="kanban-view" id="kanbanView">
+    <div class="kanban">
+        {% for status in statuses %}
+        <div class="kanban-column" data-status="{{ status }}" id="column-{{ status|lower }}">
+            <div class="kanban-column-header">
+                <span class="kanban-column-title">{{ status }}</span>
+                <span class="kanban-count">{{ columns[status]|length }}</span>
+            </div>
+            <div class="kanban-cards" data-status="{{ status }}">
+                {% for app in columns[status] %}
+                <div class="kanban-card" draggable="true" data-appid="{{ app.appid }}" id="card-{{ app.appid }}">
+                    <a href="{{ url_for('application_detail', app_id=app.appid) }}">
+                        <div class="kanban-card-title">{{ app.jobtitle }}</div>
+                        <div class="kanban-card-company">{{ app.company_name }}</div>
+                    </a>
+                    <div class="kanban-card-meta">
+                        <span>{{ app.location }}</span>
+                        <span>{{ app.submissiondate.strftime('%b %d') if app.submissiondate else 'Draft' }}</span>
+                    </div>
+                    <!-- Inline status update -->
+                    <form action="{{ url_for('update_status', app_id=app.appid) }}" method="POST" class="status-form mt-1">
+                        <select name="status" class="status-select" onchange="this.form.submit()" id="status-select-{{ app.appid }}">
+                            {% for s in statuses %}
+                            <option value="{{ s }}" {% if s == app.status %}selected{% endif %}>{{ s }}</option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                </div>
+                {% endfor %}
+                {% if columns[status]|length == 0 %}
+                <div class="empty-state" style="padding:24px 8px;">
+                    <div class="empty-state-text">No {{ status|lower }} applications</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Table View -->
+<div class="table-view" id="tableView">
+    <div class="card" style="padding:0; overflow:hidden;">
+        <div class="table-wrapper" style="border:none;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Position</th>
+                        <th>Company</th>
+                        <th>Location</th>
+                        <th>Submitted</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for app in applications %}
+                    <tr id="row-{{ app.appid }}">
+                        <td><a href="{{ url_for('application_detail', app_id=app.appid) }}" class="table-link">{{ app.jobtitle }}</a></td>
+                        <td class="table-secondary">{{ app.company_name }}</td>
+                        <td class="table-secondary">{{ app.location }}</td>
+                        <td class="table-secondary">{{ app.submissiondate.strftime('%b %d, %Y') if app.submissiondate else '—' }}</td>
+                        <td><span class="badge badge--{{ app.status|lower }}">{{ app.status }}</span></td>
+                        <td>
+                            <div class="table-actions">
+                                <a href="{{ url_for('application_detail', app_id=app.appid) }}" class="btn btn--ghost btn--sm">View</a>
+                                <form action="{{ url_for('delete_application', app_id=app.appid) }}" method="POST" style="display:inline;" onsubmit="return confirm('Delete this application and all related data?');">
+                                    <button type="submit" class="btn btn--ghost btn--sm" style="color:var(--danger-text);">Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    /* View toggle */
+    function switchView(view) {
+        const kanban = document.getElementById('kanbanView');
+        const table = document.getElementById('tableView');
+        const kBtn = document.getElementById('kanbanToggle');
+        const tBtn = document.getElementById('tableToggle');
+        if (view === 'table') {
+            kanban.classList.add('hidden');
+            table.classList.add('visible');
+            kBtn.classList.remove('active');
+            tBtn.classList.add('active');
+        } else {
+            kanban.classList.remove('hidden');
+            table.classList.remove('visible');
+            kBtn.classList.add('active');
+            tBtn.classList.remove('active');
+        }
+    }
+
+    /* Drag & Drop */
+    const cards = document.querySelectorAll('.kanban-card');
+    const dropZones = document.querySelectorAll('.kanban-cards');
+
+    cards.forEach(card => {
+        card.addEventListener('dragstart', e => {
+            card.classList.add('dragging');
+            e.dataTransfer.setData('text/plain', card.dataset.appid);
+            e.dataTransfer.effectAllowed = 'move';
+        });
+        card.addEventListener('dragend', () => card.classList.remove('dragging'));
+    });
+
+    dropZones.forEach(zone => {
+        zone.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; zone.closest('.kanban-column').classList.add('drag-over'); });
+        zone.addEventListener('dragleave', () => zone.closest('.kanban-column').classList.remove('drag-over'));
+        zone.addEventListener('drop', e => {
+            e.preventDefault();
+            zone.closest('.kanban-column').classList.remove('drag-over');
+            const appId = e.dataTransfer.getData('text/plain');
+            const newStatus = zone.dataset.status;
+            /* API call to update status */
+            fetch(`/api/applications/${appId}/status`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+            }).then(r => r.json()).then(() => location.reload());
+        });
+    });
+</script>
+{% endblock %}

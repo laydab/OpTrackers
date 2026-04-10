@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Add Document — OpTracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <a href="{{ url_for('applications') }}" class="btn btn--ghost btn--sm mb-1">← Back</a>
+        <h1>Add Document</h1>
+        <p class="subtitle">Attach a resume or cover letter to an application</p>
+    </div>
+</div>
+
+<div class="card form-card">
+    <form method="POST" action="{{ url_for('new_document') }}" id="newDocForm">
+        <div class="form-group">
+            <label class="form-label" for="app_id">Application *</label>
+            <select name="app_id" id="app_id" class="form-select" required>
+                <option value="">Select an application…</option>
+                {% for a in applications %}
+                <option value="{{ a.appid }}" {% if request.args.get('app_id')|int == a.appid %}selected{% endif %}>{{ a.jobtitle }} — {{ a.company_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" for="doc_type">Document Type *</label>
+                <select name="doc_type" id="doc_type" class="form-select" required>
+                    <option value="Resume">Resume</option>
+                    <option value="Cover Letter">Cover Letter</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="filename">File Name *</label>
+                <input type="text" name="filename" id="filename" class="form-input" required placeholder="e.g. Resume_v3_SWE.pdf">
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="filepath">File Path</label>
+            <input type="text" name="filepath" id="filepath" class="form-input" placeholder="/docs/resumes/resume_v3.pdf">
+            <div class="form-hint">Path to the file on your system.</div>
+        </div>
+        <div class="form-group" id="versionGroup">
+            <label class="form-label" for="version">Version</label>
+            <input type="text" name="version" id="version" class="form-input" placeholder="e.g. 3.0">
+        </div>
+        <div class="form-group" id="tailoredGroup" style="display:none;">
+            <label class="form-label" for="tailored">Tailored For</label>
+            <input type="text" name="tailored" id="tailored" class="form-input" placeholder="e.g. Stripe">
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn--primary" id="btn-submit-doc">Add Document</button>
+            <a href="{{ url_for('applications') }}" class="btn btn--secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const docType = document.getElementById('doc_type');
+    const vGroup = document.getElementById('versionGroup');
+    const tGroup = document.getElementById('tailoredGroup');
+    docType.addEventListener('change', () => {
+        if (docType.value === 'Cover Letter') {
+            vGroup.style.display = 'none'; tGroup.style.display = 'block';
+        } else {
+            vGroup.style.display = 'block'; tGroup.style.display = 'none';
+        }
+    });
+</script>
+{% endblock %}

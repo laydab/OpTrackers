@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Edit Interview — OpTracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <a href="{{ url_for('application_detail', app_id=app_id) }}" class="btn btn--ghost btn--sm mb-1">← Back</a>
+        <h1>Edit Interview Round {{ interview.roundnumber }}</h1>
+    </div>
+</div>
+
+<div class="card form-card">
+    <form method="POST" action="{{ url_for('edit_interview', app_id=app_id, round_num=interview.roundnumber) }}" id="editInterviewForm">
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" for="format">Format</label>
+                <select name="format" id="format" class="form-select">
+                    {% for f in ['Phone Screen','Technical','Behavioral','On-site','Take-home','Other'] %}
+                    <option value="{{ f }}" {% if interview.format == f %}selected{% endif %}>{{ f }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="date">Date</label>
+                <input type="date" name="date" id="date" class="form-input" value="{{ interview.date.isoformat() if interview.date else '' }}">
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="time">Time</label>
+            <input type="time" name="time" id="time" class="form-input" value="{{ interview.time.strftime('%H:%M') if interview.time else '' }}">
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="feedback">Feedback / Notes</label>
+            <textarea name="feedback" id="feedback" class="form-textarea">{{ interview.feedback or '' }}</textarea>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn--primary">Save Changes</button>
+            <a href="{{ url_for('application_detail', app_id=app_id) }}" class="btn btn--secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

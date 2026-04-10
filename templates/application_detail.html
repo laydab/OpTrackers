@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+{% block title %}{{ app.jobtitle }} — OpTracker{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="detail-header">
+    <div>
+        <a href="{{ url_for('applications') }}" class="btn btn--ghost btn--sm mb-1">← Back to Applications</a>
+        <h1 class="detail-title">{{ app.jobtitle }}</h1>
+        <div class="detail-company">{{ app.company_name }} · {{ app.get('location', '') }}</div>
+    </div>
+    <div class="detail-actions">
+        <span class="badge badge--{{ app.status|lower }}" style="font-size:.85rem; padding:6px 16px;">{{ app.status }}</span>
+        <a href="{{ url_for('edit_application', app_id=app.appid) }}" class="btn btn--secondary btn--sm" id="btn-edit-app">Edit</a>
+        <form action="{{ url_for('update_status', app_id=app.appid) }}" method="POST" class="status-form">
+            <select name="status" class="status-select" onchange="this.form.submit()" id="detail-status-select">
+                {% for s in ['Draft','Submitted','Interview','Offer','Rejected'] %}
+                <option value="{{ s }}" {% if s == app.status %}selected{% endif %}>→ {{ s }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+</div>
+
+<!-- Info Grid -->
+<div class="detail-grid">
+    <div>
+        <!-- Application Info -->
+        <div class="card mb-2">
+            <h3 class="section-title mb-1">Application Details</h3>
+            <div class="detail-info-grid">
+                <div>
+                    <div class="detail-label">Submitted</div>
+                    <div class="detail-value">{{ app.submissiondate.strftime('%B %d, %Y') if app.submissiondate else 'Not yet submitted' }}</div>
+                </div>
+                <div>
+                    <div class="detail-label">Status</div>
+                    <div class="detail-value"><span class="badge badge--{{ app.status|lower }}">{{ app.status }}</span></div>
+                </div>
+                <div>
+                    <div class="detail-label">Offer Deadline</div>
+                    <div class="detail-value">{{ app.offerdeadline.strftime('%B %d, %Y') if app.offerdeadline else '—' }}</div>
+                </div>
+                <div>
+                    <div class="detail-label">Salary Range</div>
+                    <div class="detail-value">{{ app.get('salaryrange', '—') or '—' }}</div>
+                </div>
+            </div>
+            {% if app.get('job_description') %}
+            <div class="detail-label">Job Description</div>
+            <p class="detail-value text-muted" style="line-height:1.6;">{{ app.job_description }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Tabs: Interviews / Documents / Notes -->
+        <div class="tabs" id="detailTabs">
+            <button class="tab active" data-tab="interviews" onclick="switchTab('interviews')">Interviews ({{ interviews|length }})</button>
+            <button class="tab" data-tab="documents" onclick="switchTab('documents')">Documents ({{ documents|length }})</button>
+            <button class="tab" data-tab="notes" onclick="switchTab('notes')">Notes ({{ notes|length }})</button>
+        </div>
+
+        <!-- Interviews Tab -->
+        <div class="tab-content active" id="tab-interviews">
+            {% if interviews %}
+            <div class="timeline">
+                {% for iv in interviews %}
+                {% set is_past = iv.date and iv.date < today if today is defined else false %}
+                <div class="timeline-item {% if iv.feedback %}timeline-item--completed{% elif not is_past %}timeline-item--upcoming{% endif %}">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-title">Round {{ iv.roundnumber }} — {{ iv.format }}</div>
+                    <div class="timeline-meta">
+                        {{ iv.date.strftime('%b %d, %Y') if iv.date else 'TBD' }}
+                        {% if iv.time %} at {{ iv.time.strftime('%I:%M %p') }}{% endif %}
+                    </div>
+                    {% set round_participants = participated|selectattr('roundnumber', 'equalto', iv.roundnumber)|list %}
+                    {% if round_participants %}
+                    <div class="timeline-meta" style="margin-top:4px;">👤 {% for p in round_participants %}{{ p.fullname }}{% if not loop.last %}, {% endif %}{% endfor %}</div>
+                    {% endif %}
+                    {% if iv.feedback %}
+                    <div class="timeline-feedback">"{{ iv.feedback }}"</div>
+                    {% endif %}
+                    <div style="margin-top:6px; display:flex; gap:6px;">
+                        <a href="{{ url_for('edit_interview', app_id=app.appid, round_num=iv.roundnumber) }}" class="btn btn--ghost btn--sm">Edit</a>
+                        <form action="{{ url_for('delete_interview', app_id=app.appid, round_num=iv.roundnumber) }}" method="POST" style="display:inline;" onsubmit="return confirm('Delete this interview round?');">
+                            <button type="submit" class="btn btn--ghost btn--sm" style="color:var(--danger-text);">Delete</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">🎤</div>
+                <div class="empty-state-text">No interview rounds logged yet</div>
+            </div>
+            {% endif %}
+            <a href="{{ url_for('new_interview') }}?app_id={{ app.appid }}" class="btn btn--secondary btn--sm mt-2" id="btn-add-interview">+ Add Interview Round</a>
+        </div>
+
+        <!-- Documents Tab -->
+        <div class="tab-content" id="tab-documents">
+            {% if documents %}
+            <div class="chip-list">
+                {% for doc in documents %}
+                <div class="chip" id="doc-{{ doc.docid }}" style="display:flex; align-items:center; gap:8px;">
+                    <svg class="chip-icon" viewBox="0 0 16 16" fill="none"><path d="M4 2h5l4 4v8a1 1 0 01-1 1H4a1 1 0 01-1-1V3a1 1 0 011-1z" stroke="currentColor" stroke-width="1.2"/><path d="M9 2v4h4" stroke="currentColor" stroke-width="1.2"/></svg>
+                    <span>{{ doc.filename }}</span>
+                    {% if doc.get('type') %}<span class="text-muted text-sm">· {{ doc.type }}</span>{% endif %}
+                    {% if doc.get('version') %}<span class="text-muted text-sm">(v{{ doc.version }})</span>{% endif %}
+                    {% if doc.get('tailoredcompanyname') %}<span class="text-muted text-sm">({{ doc.tailoredcompanyname }})</span>{% endif %}
+                    <form action="{{ url_for('delete_document', doc_id=doc.docid) }}" method="POST" style="display:inline; margin-left:auto;" onsubmit="return confirm('Delete this document?');">
+                        <input type="hidden" name="app_id" value="{{ app.appid }}">
+                        <button type="submit" class="btn btn--ghost btn--sm" style="color:var(--danger-text); padding:2px 6px; font-size:.75rem;">×</button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">📄</div>
+                <div class="empty-state-text">No documents attached</div>
+            </div>
+            {% endif %}
+            <a href="{{ url_for('new_document') }}?app_id={{ app.appid }}" class="btn btn--secondary btn--sm mt-2" id="btn-add-document">+ Add Document</a>
+        </div>
+
+        <!-- Notes Tab -->
+        <div class="tab-content" id="tab-notes">
+            {% if notes %}
+            <div style="display:flex; flex-direction:column; gap:10px;">
+                {% for note in notes %}
+                <div class="note-card" style="display:flex; align-items:flex-start; gap:8px;">
+                    <span style="flex:1;">{{ note.note }}</span>
+                    <form action="{{ url_for('delete_note', app_id=app.appid) }}" method="POST" style="display:inline;" onsubmit="return confirm('Delete this note?');">
+                        <input type="hidden" name="note" value="{{ note.note }}">
+                        <button type="submit" class="btn btn--ghost btn--sm" style="color:var(--danger-text); padding:2px 6px; font-size:.75rem;">×</button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">📝</div>
+                <div class="empty-state-text">No notes added</div>
+            </div>
+            {% endif %}
+            <!-- Inline add note form -->
+            <form action="{{ url_for('add_note', app_id=app.appid) }}" method="POST" style="margin-top:12px; display:flex; gap:8px;" id="addNoteForm">
+                <input type="text" name="note" class="form-input" placeholder="Add a note…" required style="flex:1;">
+                <button type="submit" class="btn btn--secondary btn--sm">Add</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Sidebar: Contacts + Quick Actions -->
+    <div>
+        <!-- Contacts at this Company -->
+        <div class="card mb-2">
+            <h3 class="section-title mb-1">Contacts at {{ app.company_name }}</h3>
+            {% if contacts %}
+            <div class="list">
+                {% for contact in contacts %}
+                <div class="list-item" style="padding:10px 8px;" id="contact-{{ contact.contactid }}">
+                    <div class="contact-avatar">{{ contact.fullname[0] }}</div>
+                    <div class="list-content">
+                        <div class="list-title" style="font-size:.85rem;">{{ contact.fullname }}</div>
+                        <div class="list-meta" style="font-size:.75rem;">{{ contact.email }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted text-sm">No contacts found for this company.</p>
+            {% endif %}
+            <a href="{{ url_for('new_contact') }}" class="btn btn--ghost btn--sm mt-1">+ Add Contact</a>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="card mb-2">
+            <h3 class="section-title mb-1">Quick Actions</h3>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+                <a href="{{ url_for('new_interview') }}?app_id={{ app.appid }}" class="btn btn--secondary btn--sm">Add Interview Round</a>
+                <a href="{{ url_for('new_document') }}?app_id={{ app.appid }}" class="btn btn--secondary btn--sm">Attach Document</a>
+                {% if app.get('company_website') %}
+                <a href="{{ app.company_website }}" target="_blank" class="btn btn--ghost btn--sm">Visit Company Website ↗</a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Delete Zone -->
+        <div class="card">
+            <div class="delete-section" style="margin-top:0; padding-top:0; border-top:none;">
+                <h3>Danger Zone</h3>
+                <p>Deleting this application will also remove all related interview rounds, documents, and notes (cascade delete).</p>
+                <form action="{{ url_for('delete_application', app_id=app.appid) }}" method="POST" onsubmit="return confirm('Are you sure? This will permanently delete this application and all associated interview rounds, documents, and notes.');" id="delete-form">
+                    <button type="submit" class="btn btn--danger" id="btn-delete-app">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 4h10M6 4V3a1 1 0 011-1h2a1 1 0 011 1v1M5 7v5M8 7v5M11 7v5M4 4l.7 9.1a1 1 0 001 .9h4.6a1 1 0 001-.9L12 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        Delete Application
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function switchTab(tab) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
+        document.getElementById(`tab-${tab}`).classList.add('active');
+    }
+</script>
+{% endblock %}
