@@ -694,10 +694,63 @@ def delete_application(app_id):
 @login_required
 def new_application():
     if request.method == "POST":
-        posting_id = request.form.get("posting_id")
         status = request.form.get("status", "Draft")
         submission_date = request.form.get("submission_date") or None
         offer_deadline = request.form.get("offer_deadline") or None
+
+        # --- Inline company creation ---
+        new_company_name = request.form.get("new_company_name", "").strip()
+        posting_id = request.form.get("posting_id")
+
+        if new_company_name:
+            # Create the company first
+            comp_location = request.form.get("new_company_location", "")
+            comp_website = request.form.get("new_company_website", "")
+            comp_industries = request.form.get("new_company_industries", "")
+            result = query_db(
+                "INSERT INTO Company (Name, Location, Website) VALUES (%s, %s, %s) RETURNING CompanyID",
+                (new_company_name, comp_location, comp_website), commit=False,
+            )
+            if result is None:
+                company_id = max(c["companyid"] for c in MOCK_COMPANIES) + 1 if MOCK_COMPANIES else 1
+                MOCK_COMPANIES.append({
+                    "companyid": company_id, "name": new_company_name,
+                    "location": comp_location, "website": comp_website,
+                    "userid": session.get("user_id"),
+                })
+                for ind in [i.strip() for i in comp_industries.split(",") if i.strip()]:
+                    MOCK_COMPANY_INDUSTRIES.append({"companyid": company_id, "industry": ind})
+            else:
+                company_id = result[0].get("companyid", 1)
+
+            # Create the job posting for this company
+            job_title = request.form.get("new_job_title", "").strip()
+            job_location = request.form.get("new_job_location", "")
+            job_salary = request.form.get("new_job_salary", "")
+            job_deadline = request.form.get("new_job_deadline") or None
+            job_description = request.form.get("new_job_description", "")
+
+            result = query_db(
+                """INSERT INTO Job_Posting (JobTitle, Location, Description, SalaryRange, DatePosted, ApplicationDeadline, CompanyID)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING PostingID""",
+                (job_title or new_company_name + " Role", job_location or comp_location,
+                 job_description, job_salary, date.today().isoformat(), job_deadline, company_id), commit=True,
+            )
+            if result is None:
+                posting_id = max(p["postingid"] for p in MOCK_POSTINGS) + 1 if MOCK_POSTINGS else 1
+                MOCK_POSTINGS.append({
+                    "postingid": posting_id,
+                    "jobtitle": job_title or new_company_name + " Role",
+                    "location": job_location or comp_location,
+                    "description": job_description, "salaryrange": job_salary,
+                    "dateposted": date.today(),
+                    "applicationdeadline": date.fromisoformat(job_deadline) if job_deadline else None,
+                    "companyid": company_id, "company_name": new_company_name,
+                })
+            else:
+                posting_id = result[0].get("postingid", 1)
+
+        # --- Create the application ---
         result = query_db(
             "INSERT INTO Application (SubmissionDate, Status, OfferDeadline, PostingID) VALUES (%s, %s, %s, %s)",
             (submission_date, status, offer_deadline, posting_id), commit=True,
@@ -737,7 +790,8 @@ def new_application():
         flash("Application created.", "success")
         return redirect(url_for("applications"))
     postings = get_postings()
-    return render_template("form_application.html", postings=postings)
+    companies = get_companies()
+    return render_template("form_application.html", postings=postings, companies=companies)
 
 
 @app.route("/applications/<int:app_id>/edit", methods=["GET", "POST"])

@@ -111,7 +111,7 @@
                             <div class="table-actions">
                                 <a href="{{ url_for('application_detail', app_id=app.appid) }}" class="btn btn--ghost btn--sm">View</a>
                                 <form action="{{ url_for('delete_application', app_id=app.appid) }}" method="POST" style="display:inline;" onsubmit="return confirm('Delete this application and all related data?');">
-                                    <button type="submit" class="btn btn--ghost btn--sm" style="color:var(--danger-text);">Delete</button>
+                                    <button type="submit" class="btn btn--ghost btn--sm" style="color:var(--color-danger-text);">Delete</button>
                                 </form>
                             </div>
                         </td>
