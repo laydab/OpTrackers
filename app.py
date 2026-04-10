@@ -53,8 +53,13 @@ def query_db(sql, args=(), one=False, commit=False):
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cur.execute(sql, args)
         if commit:
-            conn.commit()
-            return True
+            if sql.strip().upper().find("RETURNING") != -1:
+                rows = cur.fetchall()
+                conn.commit()
+                return (rows[0] if rows else None) if one else rows
+            else:
+                conn.commit()
+                return True
         rows = cur.fetchall()
         return (rows[0] if rows else None) if one else rows
     except Exception as e:
@@ -332,8 +337,9 @@ def dashboard():
         FROM Application a
         JOIN Job_Posting jp ON a.PostingID = jp.PostingID
         JOIN Company c ON jp.CompanyID = c.CompanyID
+        WHERE a.UserID = %s
         GROUP BY c.Name ORDER BY cnt DESC
-    """) or []
+    """, (session.get("user_id"),)) or []
     apps_per_company = {r["name"]: r["cnt"] for r in apps_per_company_rows}
 
     # ── SQL GROUP BY: Success rate by industry ──
@@ -345,8 +351,9 @@ def dashboard():
         FROM Application a
         JOIN Job_Posting jp ON a.PostingID = jp.PostingID
         JOIN Company_Industry ci ON jp.CompanyID = ci.CompanyID
-        GROUP BY ci.Industry ORDER BY total DESC
-    """) or []
+        WHERE a.UserID = %s
+        GROUP BY ci.Industry ORDER BY rate DESC
+    """, (session.get("user_id"),)) or []
     industry_stats = {r["industry"]: {"total": r["total"], "offers": r["offers"], "rate": r["rate"]} for r in industry_rows}
 
     # ── SQL AGGREGATION: Overall stats ──
