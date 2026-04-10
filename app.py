@@ -821,8 +821,89 @@ def edit_application(app_id):
 
 
 # ---------------------------------------------------------------------------
-# Routes — Companies & Directory
+# Routes — Directory (Companies, Contacts, Interviews, Documents)
 # ---------------------------------------------------------------------------
+
+@app.route("/contacts")
+@login_required
+def contacts_page():
+    contacts = get_contacts()
+    return render_template("contacts_list.html", contacts=contacts)
+
+@app.route("/interviews")
+@login_required
+def interviews_page():
+    applications = get_applications()
+    app_map = {a["appid"]: a for a in applications}
+    
+    interviews = []
+    # Fetch all interviews across all applications
+    result = query_db("""
+        SELECT i.*, 
+            a.JobTitle as jobtitle, c.Name as company_name,
+            array_agg(p.ContactID) as participant_ids
+        FROM Interview_Round i
+        JOIN Application a ON i.AppID = a.AppID
+        JOIN Job_Posting jp ON a.PostingID = jp.PostingID
+        JOIN Company c ON jp.CompanyID = c.CompanyID
+        LEFT JOIN Participated_In p ON i.RoundNumber = p.RoundNumber AND i.AppID = p.AppID
+        GROUP BY i.RoundNumber, i.AppID, a.JobTitle, c.Name
+        ORDER BY i.Date DESC NULLS LAST, i.Time DESC NULLS LAST
+    """)
+    if result is not None:
+        interviews = result
+    else:
+        # Mock fallback
+        for app in applications:
+            app_id = app["appid"]
+            app_ivs = [iv.copy() for iv in MOCK_INTERVIEWS if iv["appid"] == app_id]
+            for iv in app_ivs:
+                iv["jobtitle"] = app.get("jobtitle", "")
+                iv["company_name"] = app.get("company_name", "")
+            interviews.extend(app_ivs)
+        interviews.sort(key=lambda x: (x.get("date") or date.max, x.get("time") or time.max), reverse=True)
+        
+    return render_template("interviews_list.html", interviews=interviews)
+
+@app.route("/documents")
+@login_required
+def documents_page():
+    result = query_db("""
+        SELECT d.*, a.JobTitle as jobtitle, c.Name as company_name,
+               r.Version as resume_version, cl.TailoredCompanyName as cl_tailored
+        FROM Document d
+        JOIN Application a ON d.AppID = a.AppID
+        JOIN Job_Posting jp ON a.PostingID = jp.PostingID
+        JOIN Company c ON jp.CompanyID = c.CompanyID
+        LEFT JOIN Resume r ON d.DocID = r.DocID
+        LEFT JOIN Cover_Letter cl ON d.DocID = cl.DocID
+        ORDER BY d.UploadDate DESC
+    """)
+    if result is not None:
+        documents = result
+    else:
+        # Mock fallback
+        documents = []
+        apps = {a["appid"]: a for a in get_applications()}
+        for doc in MOCK_DOCUMENTS:
+            d = doc.copy()
+            app = apps.get(d["appid"], {})
+            d["jobtitle"] = app.get("jobtitle", "")
+            d["company_name"] = app.get("company_name", "")
+            
+            res = next((r for r in MOCK_RESUMES if r["docid"] == d["docid"]), None)
+            cl = next((c for c in MOCK_COVER_LETTERS if c["docid"] == d["docid"]), None)
+            
+            if res:
+                d["resume_version"] = res.get("version")
+            if cl:
+                d["cl_tailored"] = cl.get("tailoredcompanyname")
+                
+            documents.append(d)
+        documents.sort(key=lambda x: x.get("uploaddate") or date.min, reverse=True)
+
+    return render_template("documents_list.html", documents=documents)
+
 
 @app.route("/companies")
 @login_required
@@ -1243,4 +1324,4 @@ def api_update_status(app_id):
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5002)
+    app.run(debug=True, port=5001)
