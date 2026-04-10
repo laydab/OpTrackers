@@ -9,6 +9,8 @@ import secrets
 from functools import wraps
 from datetime import date, time, timedelta
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
+from werkzeug.utils import secure_filename
+
 
 # ---------------------------------------------------------------------------
 # App Configuration
@@ -529,8 +531,22 @@ def new_application():
 
         # Create resume document if provided
         resume_filename = request.form.get("resume_filename", "").strip()
-        if resume_filename:
+        path = ""
+        if 'resume_file' in request.files:
+            file = request.files['resume_file']
+            if file and file.filename:
+                orig_filename = secure_filename(file.filename)
+                upload_dir = os.path.join(app.root_path, 'static', 'uploads', 'docs')
+                os.makedirs(upload_dir, exist_ok=True)
+                file.save(os.path.join(upload_dir, orig_filename))
+                path = f"/static/uploads/docs/{orig_filename}"
+                if not resume_filename:
+                    resume_filename = orig_filename
+                    
+        if not path and resume_filename:
             path = f"/docs/resumes/{resume_filename}"
+            
+        if resume_filename and path:
             res = query_db("INSERT INTO Document (FileName, FilePath, UploadDate, AppID) VALUES (%s, %s, %s, %s) RETURNING DocID",
                            (resume_filename, path, date.today(), new_app_id), commit=True)
             doc_id = res[0].get("docid") if res else 1
@@ -539,8 +555,22 @@ def new_application():
 
         # Create cover letter document if provided
         cl_filename = request.form.get("cl_filename", "").strip()
-        if cl_filename:
+        path = ""
+        if 'cl_file' in request.files:
+            file = request.files['cl_file']
+            if file and file.filename:
+                orig_filename = secure_filename(file.filename)
+                upload_dir = os.path.join(app.root_path, 'static', 'uploads', 'docs')
+                os.makedirs(upload_dir, exist_ok=True)
+                file.save(os.path.join(upload_dir, orig_filename))
+                path = f"/static/uploads/docs/{orig_filename}"
+                if not cl_filename:
+                    cl_filename = orig_filename
+                    
+        if not path and cl_filename:
             path = f"/docs/coverletters/{cl_filename}"
+
+        if cl_filename and path:
             res = query_db("INSERT INTO Document (FileName, FilePath, UploadDate, AppID) VALUES (%s, %s, %s, %s) RETURNING DocID",
                            (cl_filename, path, date.today(), new_app_id), commit=True)
             doc_id = res[0].get("docid") if res else 1
@@ -594,16 +624,17 @@ def interviews_page():
     # Fetch all interviews across all applications
     result = query_db("""
         SELECT i.*, 
-            a.JobTitle as jobtitle, c.Name as company_name,
+            jp.JobTitle as jobtitle, c.Name as company_name,
             array_agg(p.ContactID) as participant_ids
         FROM Interview_Round i
         JOIN Application a ON i.AppID = a.AppID
         JOIN Job_Posting jp ON a.PostingID = jp.PostingID
         JOIN Company c ON jp.CompanyID = c.CompanyID
         LEFT JOIN Participated_In p ON i.RoundNumber = p.RoundNumber AND i.AppID = p.AppID
-        GROUP BY i.RoundNumber, i.AppID, a.JobTitle, c.Name
+        WHERE a.UserID = %s
+        GROUP BY i.RoundNumber, i.AppID, jp.JobTitle, c.Name
         ORDER BY i.Date DESC NULLS LAST, i.Time DESC NULLS LAST
-    """)
+    """, (session.get("user_id"),))
     interviews = result or []
     return render_template("interviews_list.html", interviews=interviews)
 
@@ -611,7 +642,7 @@ def interviews_page():
 @login_required
 def documents_page():
     result = query_db("""
-        SELECT d.*, a.JobTitle as jobtitle, c.Name as company_name,
+        SELECT d.*, jp.JobTitle as jobtitle, c.Name as company_name,
                r.Version as resume_version, cl.TailoredCompanyName as cl_tailored
         FROM Document d
         JOIN Application a ON d.AppID = a.AppID
@@ -619,8 +650,9 @@ def documents_page():
         JOIN Company c ON jp.CompanyID = c.CompanyID
         LEFT JOIN Resume r ON d.DocID = r.DocID
         LEFT JOIN Cover_Letter cl ON d.DocID = cl.DocID
+        WHERE a.UserID = %s
         ORDER BY d.UploadDate DESC
-    """)
+    """, (session.get("user_id"),))
     documents = result or []
 
     return render_template("documents_list.html", documents=documents)
@@ -869,10 +901,28 @@ def new_document():
     if request.method == "POST":
         app_id = int(request.form["app_id"])
         doc_type = request.form.get("doc_type", "Resume")
+        filename_input = request.form.get("filename", "").strip()
+        db_filepath = ""
+
+        if 'document_file' in request.files:
+            file = request.files['document_file']
+            if file and file.filename:
+                orig_filename = secure_filename(file.filename)
+                upload_dir = os.path.join(app.root_path, 'static', 'uploads', 'docs')
+                os.makedirs(upload_dir, exist_ok=True)
+                file_dest = os.path.join(upload_dir, orig_filename)
+                file.save(file_dest)
+                db_filepath = f"/static/uploads/docs/{orig_filename}"
+                if not filename_input:
+                    filename_input = orig_filename
+        
+        if not db_filepath:
+            db_filepath = request.form.get("filepath", "")
+
         res = query_db(
             """INSERT INTO Document (FileName, FilePath, UploadDate, AppID)
                VALUES (%s, %s, %s, %s) RETURNING DocID""",
-            (request.form["filename"], request.form.get("filepath", ""),
+            (filename_input, db_filepath,
              date.today().isoformat(), app_id), commit=True,
         )
         doc_id = res[0].get("docid") if res else 1

@@ -11,7 +11,7 @@
 </div>
 
 <div class="card form-card">
-    <form method="POST" action="{{ url_for('new_document') }}" id="newDocForm">
+    <form method="POST" action="{{ url_for('new_document') }}" id="newDocForm" enctype="multipart/form-data">
         <div class="form-group">
             <label class="form-label" for="app_id">Application *</label>
             <select name="app_id" id="app_id" class="form-select" required>
@@ -30,14 +30,14 @@
                 </select>
             </div>
             <div class="form-group">
-                <label class="form-label" for="filename">File Name *</label>
-                <input type="text" name="filename" id="filename" class="form-input" required placeholder="e.g. Resume_v3_SWE.pdf">
+                <label class="form-label" for="filename">File Name</label>
+                <input type="text" name="filename" id="filename" class="form-input" placeholder="Leave empty to use original filename">
             </div>
         </div>
         <div class="form-group">
-            <label class="form-label" for="filepath">File Path</label>
-            <input type="text" name="filepath" id="filepath" class="form-input" placeholder="/docs/resumes/resume_v3.pdf">
-            <div class="form-hint">Path to the file on your system.</div>
+            <label class="form-label" for="document_file">Upload File *</label>
+            <input type="file" name="document_file" id="document_file" class="form-input" required>
+            <div class="form-hint">Choose a document from your computer.</div>
         </div>
         <div class="form-group" id="versionGroup">
             <label class="form-label" for="version">Version</label>

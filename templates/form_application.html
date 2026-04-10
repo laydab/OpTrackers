@@ -11,7 +11,7 @@
 </div>
 
 <div class="card form-card">
-    <form method="POST" action="{{ url_for('new_application') }}" id="newAppForm">
+    <form method="POST" action="{{ url_for('new_application') }}" id="newAppForm" enctype="multipart/form-data">
         <div class="toggle-container" style="margin-bottom:20px; display:flex; align-items:center; gap:12px; background:var(--bg-secondary); padding:8px 12px; border-radius:8px;">
             <span class="text-sm font-medium">Job Selection:</span>
             <label class="toggle-switch">
@@ -88,8 +88,12 @@
             <h3 class="section-title mb-1"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="display:inline; vertical-align:-2px;"><path d="M4 2h5l4 4v8a1 1 0 01-1 1H4a1 1 0 01-1-1V3a1 1 0 011-1z" stroke="currentColor" stroke-width="1.2"/><path d="M9 2v4h4" stroke="currentColor" stroke-width="1.2"/></svg> Resume <span class="text-muted text-sm">(optional)</span></h3>
             <div class="form-row">
                 <div class="form-group">
+                    <label class="form-label" for="resume_file">Upload Resume File</label>
+                    <input type="file" name="resume_file" id="resume_file" class="form-input">
+                </div>
+                <div class="form-group">
                     <label class="form-label" for="resume_filename">File Name</label>
-                    <input type="text" name="resume_filename" id="resume_filename" class="form-input" placeholder="e.g. Resume_v3_SWE.pdf">
+                    <input type="text" name="resume_filename" id="resume_filename" class="form-input" placeholder="Leave empty for original name">
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="resume_version">Version</label>
@@ -103,8 +107,12 @@
             <h3 class="section-title mb-1"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="display:inline; vertical-align:-2px;"><path d="M2 4a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V4z" stroke="currentColor" stroke-width="1.2"/><path d="M2 4l6 4.5L14 4" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg> Cover Letter <span class="text-muted text-sm">(optional)</span></h3>
             <div class="form-row">
                 <div class="form-group">
+                    <label class="form-label" for="cl_file">Upload Cover Letter File</label>
+                    <input type="file" name="cl_file" id="cl_file" class="form-input">
+                </div>
+                <div class="form-group">
                     <label class="form-label" for="cl_filename">File Name</label>
-                    <input type="text" name="cl_filename" id="cl_filename" class="form-input" placeholder="e.g. CL_Stripe.pdf">
+                    <input type="text" name="cl_filename" id="cl_filename" class="form-input" placeholder="Leave empty for original name">
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="cl_tailored">Tailored For</label>
