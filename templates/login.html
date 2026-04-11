@@ -11,63 +11,147 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body class="auth-body">
-    <div class="auth-container">
-        <div class="auth-card">
-            <!-- Logo -->
-            <div class="auth-logo">
-                <svg width="36" height="36" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect width="28" height="28" rx="8" fill="#0369A1"/>
-                    <path d="M8 14L12 18L20 10" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                <span class="auth-logo-text">OpTracker</span>
+
+    <!-- Left Hero Panel -->
+    <div class="auth-hero" aria-hidden="true">
+        <!-- Animated background particles -->
+        <div class="auth-hero-particles">
+            <div class="particle particle--1"></div>
+            <div class="particle particle--2"></div>
+            <div class="particle particle--3"></div>
+            <div class="particle particle--4"></div>
+            <div class="particle particle--5"></div>
+            <div class="particle particle--6"></div>
+        </div>
+
+        <!-- Career milestone path SVG -->
+        <div class="auth-hero-visual">
+            <svg class="career-path-svg" viewBox="0 0 300 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- The winding path -->
+                <path class="career-path-line" d="M150 380 C150 340, 80 320, 80 280 C80 240, 220 220, 220 180 C220 140, 100 120, 100 80 C100 50, 150 30, 150 20" stroke="url(#pathGradient)" stroke-width="2.5" stroke-linecap="round" fill="none" stroke-dasharray="6 6"/>
+
+                <!-- Milestone nodes -->
+                <circle class="milestone milestone--1" cx="150" cy="370" r="8" fill="#0EA5E9"/>
+                <circle class="milestone milestone--2" cx="80"  cy="280" r="8" fill="#0EA5E9"/>
+                <circle class="milestone milestone--3" cx="220" cy="180" r="8" fill="#0EA5E9"/>
+                <circle class="milestone milestone--4" cx="100" cy="80"  r="8" fill="#16A34A"/>
+
+                <!-- Milestone icons -->
+                <text x="150" y="374" text-anchor="middle" fill="white" font-size="10" font-weight="bold">📝</text>
+                <text x="80"  y="284" text-anchor="middle" fill="white" font-size="10" font-weight="bold">📤</text>
+                <text x="220" y="184" text-anchor="middle" fill="white" font-size="10" font-weight="bold">🎤</text>
+                <text x="100" y="84"  text-anchor="middle" fill="white" font-size="10" font-weight="bold">🎯</text>
+
+                <!-- Labels -->
+                <text x="175" y="378" fill="rgba(255,255,255,0.6)" font-size="11" font-family="Plus Jakarta Sans">Apply</text>
+                <text x="40"  y="270" fill="rgba(255,255,255,0.6)" font-size="11" font-family="Plus Jakarta Sans">Submit</text>
+                <text x="240" y="174" fill="rgba(255,255,255,0.6)" font-size="11" font-family="Plus Jakarta Sans">Interview</text>
+                <text x="120" y="74"  fill="rgba(255,255,255,0.6)" font-size="11" font-family="Plus Jakarta Sans">Offer</text>
+
+                <!-- Glow pulse on final node -->
+                <circle class="milestone-glow" cx="100" cy="80" r="14" fill="none" stroke="#16A34A" stroke-width="1.5" opacity="0.4"/>
+
+                <defs>
+                    <linearGradient id="pathGradient" x1="150" y1="380" x2="150" y2="20" gradientUnits="userSpaceOnUse">
+                        <stop offset="0%" stop-color="#0369A1" stop-opacity="0.3"/>
+                        <stop offset="100%" stop-color="#16A34A" stop-opacity="0.8"/>
+                    </linearGradient>
+                </defs>
+            </svg>
+        </div>
+
+        <!-- Hero text -->
+        <div class="auth-hero-content">
+            <div class="auth-hero-badge">
+                <svg width="16" height="16" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="8" fill="#0EA5E9"/><path d="M8 14L12 18L20 10" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                OpTracker
             </div>
+            <h2 class="auth-hero-title">Every opportunity<br><span>tracked & organized.</span></h2>
+            <p class="auth-hero-subtitle">From first application to final offer — stay focused, stay prepared, land the role.</p>
 
-            <h1 class="auth-title">Welcome back</h1>
-            <p class="auth-subtitle">Sign in to your account to continue</p>
-
-            <!-- Flash Messages -->
-            {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-            <div class="auth-flash-container">
-                {% for category, message in messages %}
-                <div class="flash flash--{{ category }}" role="alert">
-                    <span>{{ message }}</span>
+            <!-- Mini stats for social proof -->
+            <div class="auth-hero-stats">
+                <div class="auth-hero-stat">
+                    <span class="auth-hero-stat-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    </span>
+                    <span class="auth-hero-stat-text">Track Applications</span>
                 </div>
-                {% endfor %}
-            </div>
-            {% endif %}
-            {% endwith %}
-
-            <form method="POST" action="{{ url_for('login') }}" class="auth-form" id="loginForm">
-                <input type="hidden" name="next" value="{{ next }}">
-
-                <div class="form-group">
-                    <label class="form-label" for="email">Email Address</label>
-                    <input class="form-input" type="email" id="email" name="email"
-                           placeholder="you@example.com" required autocomplete="email" autofocus>
+                <div class="auth-hero-stat">
+                    <span class="auth-hero-stat-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    </span>
+                    <span class="auth-hero-stat-text">Schedule Interviews</span>
                 </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="password">Password</label>
-                    <input class="form-input" type="password" id="password" name="password"
-                           placeholder="••••••••" required autocomplete="current-password">
+                <div class="auth-hero-stat">
+                    <span class="auth-hero-stat-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    </span>
+                    <span class="auth-hero-stat-text">Measure Progress</span>
                 </div>
-
-                <button type="submit" class="btn btn--primary auth-submit" id="loginButton">
-                    Sign In
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                </button>
-            </form>
-
-            <p class="auth-footer">
-                Don't have an account? <a href="{{ url_for('register') }}" class="auth-link" id="registerLink">Create one</a>
-            </p>
-
-            <div class="auth-demo-hint">
-                <span class="auth-demo-label">Demo credentials</span>
-                <code>demo@optracker.com</code> / <code>password123</code>
             </div>
         </div>
     </div>
+
+    <!-- Right Form Panel -->
+    <div class="auth-panel">
+        <div class="auth-panel-inner">
+            <div class="auth-card">
+                <h1 class="auth-title">Welcome back</h1>
+                <p class="auth-subtitle">Sign in to continue your journey</p>
+
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                <div class="auth-flash-container">
+                    {% for category, message in messages %}
+                    <div class="flash flash--{{ category }}" role="alert">
+                        <span>{{ message }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% endwith %}
+
+                <form method="POST" action="{{ url_for('login') }}" class="auth-form" id="loginForm">
+                    <input type="hidden" name="next" value="{{ next }}">
+
+                    <div class="form-group">
+                        <label class="form-label" for="email">Email Address</label>
+                        <div class="auth-input-wrap">
+                            <svg class="auth-input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                            <input class="form-input auth-input-field" type="email" id="email" name="email"
+                                   placeholder="you@example.com" required autocomplete="email" autofocus>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="password">Password</label>
+                        <div class="auth-input-wrap">
+                            <svg class="auth-input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                            <input class="form-input auth-input-field" type="password" id="password" name="password"
+                                   placeholder="••••••••" required autocomplete="current-password">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn--primary auth-submit" id="loginButton">
+                        Sign In
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                </form>
+
+                <p class="auth-footer">
+                    Don't have an account? <a href="{{ url_for('register') }}" class="auth-link" id="registerLink">Create one</a>
+                </p>
+            </div>
+
+            <!-- Motivational footer quote -->
+            <div class="auth-quote">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                <span>"The secret of getting ahead is getting started."</span>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>
