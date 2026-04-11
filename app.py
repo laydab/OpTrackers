@@ -250,7 +250,13 @@ def get_interviews(app_id=None):
             SELECT * FROM Interview_Round WHERE AppID = %s ORDER BY RoundNumber
         """, (app_id,)) or []
     else:
-        return query_db("SELECT * FROM Interview_Round ORDER BY Date, Time") or []
+        uid = session.get("user_id")
+        return query_db("""
+            SELECT ir.* FROM Interview_Round ir
+            JOIN Application a ON ir.AppID = a.AppID
+            WHERE a.UserID = %s
+            ORDER BY ir.Date, ir.Time
+        """, (uid,)) or []
 
 def get_documents(app_id):
     rows = query_db("""
@@ -366,7 +372,8 @@ def dashboard():
                ROUND(COUNT(*)::numeric / NULLIF(COUNT(DISTINCT jp.CompanyID), 0), 1) AS avg_per_company
         FROM Application a
         JOIN Job_Posting jp ON a.PostingID = jp.PostingID
-    """, one=True)
+        WHERE a.UserID = %s
+    """, (session.get("user_id"),), one=True)
     agg_stats = agg_row if agg_row else {
         "total_apps": total,
         "companies_applied": len(apps_per_company),
@@ -377,7 +384,8 @@ def dashboard():
     division_rows = query_db("""
         SELECT cp.ContactID, cp.FullName
         FROM Contact_Person cp
-        WHERE NOT EXISTS (
+        WHERE cp.UserID = %s
+        AND NOT EXISTS (
             SELECT ir.AppID, ir.RoundNumber
             FROM Interview_Round ir
             WHERE ir.AppID IN (
@@ -389,7 +397,7 @@ def dashboard():
             WHERE pi2.ContactID = cp.ContactID
         )
         AND EXISTS (SELECT 1 FROM Participated_In pi3 WHERE pi3.ContactID = cp.ContactID)
-    """)
+    """, (session.get("user_id"),))
     if division_rows is None:
         division_rows = []
 
@@ -472,9 +480,10 @@ def application_detail(app_id):
 @login_required
 def update_status(app_id):
     new_status = request.form.get("status")
+    uid = session.get("user_id")
     result = query_db(
-        "UPDATE Application SET Status = %s WHERE AppID = %s",
-        (new_status, app_id), commit=True,
+        "UPDATE Application SET Status = %s WHERE AppID = %s AND UserID = %s",
+        (new_status, app_id, uid), commit=True,
     )
     flash(f"Status updated to {new_status}.", "success")
     return redirect(request.referrer or url_for("applications"))
@@ -483,7 +492,8 @@ def update_status(app_id):
 @app.route("/applications/<int:app_id>/delete", methods=["POST"])
 @login_required
 def delete_application(app_id):
-    query_db("DELETE FROM Application WHERE AppID = %s", (app_id,), commit=True)
+    uid = session.get("user_id")
+    query_db("DELETE FROM Application WHERE AppID = %s AND UserID = %s", (app_id, uid), commit=True)
     flash("Application deleted (cascaded).", "success")
     return redirect(url_for("applications"))
 
@@ -510,7 +520,10 @@ def new_application():
                 "INSERT INTO Company (Name, Location, Website, UserID) VALUES (%s, %s, %s, %s) RETURNING CompanyID",
                 (new_company_name, comp_location, comp_website, uid), commit=True,
             )
-            company_id = result[0].get("companyid") if result else 1
+            if not result:
+                flash("Error creating company.", "error")
+                return redirect(url_for("new_application"))
+            company_id = result[0].get("companyid")
             
             for ind in [i.strip() for i in comp_industries.split(",") if i.strip()]:
                 query_db("INSERT INTO Company_Industry (CompanyID, Industry) VALUES (%s, %s)",
@@ -529,7 +542,10 @@ def new_application():
                 (job_title or new_company_name + " Role", job_location or comp_location,
                  job_description, job_salary, date.today().isoformat(), job_deadline, company_id), commit=True,
             )
-            posting_id = result[0].get("postingid") if result else 1
+            if not result:
+                flash("Error creating job posting.", "error")
+                return redirect(url_for("new_application"))
+            posting_id = result[0].get("postingid")
 
         # --- Create the application ---
         uid = session.get("user_id")
@@ -537,7 +553,10 @@ def new_application():
             "INSERT INTO Application (SubmissionDate, Status, OfferDeadline, PostingID, UserID) VALUES (%s, %s, %s, %s, %s) RETURNING AppID",
             (submission_date, status, offer_deadline, posting_id, uid), commit=True,
         )
-        new_app_id = result[0].get("appid") if result else 1
+        if not result:
+            flash("Error creating application.", "error")
+            return redirect(url_for("new_application"))
+        new_app_id = result[0].get("appid")
 
         # Create resume document if provided
         resume_filename = request.form.get("resume_filename", "").strip()
@@ -606,8 +625,8 @@ def edit_application(app_id):
         submission_date = request.form.get("submission_date") or None
         offer_deadline = request.form.get("offer_deadline") or None
         query_db(
-            "UPDATE Application SET Status = %s, SubmissionDate = %s, OfferDeadline = %s WHERE AppID = %s",
-            (status, submission_date, offer_deadline, app_id), commit=True,
+            "UPDATE Application SET Status = %s, SubmissionDate = %s, OfferDeadline = %s WHERE AppID = %s AND UserID = %s",
+            (status, submission_date, offer_deadline, app_id, session.get("user_id")), commit=True,
         )
         flash("Application updated.", "success")
         return redirect(url_for("application_detail", app_id=app_id))
@@ -732,10 +751,16 @@ def edit_company(company_id):
         location = request.form.get("location")
         website = request.form.get("website")
         industries = request.form.get("industries", "")
+        uid = session.get("user_id")
         query_db(
-            "UPDATE Company SET Name=%s, Location=%s, Website=%s WHERE CompanyID=%s",
-            (name, location, website, company_id), commit=True,
+            "UPDATE Company SET Name=%s, Location=%s, Website=%s WHERE CompanyID=%s AND UserID=%s",
+            (name, location, website, company_id, uid), commit=True,
         )
+        # Update industries: delete old, insert new
+        query_db("DELETE FROM Company_Industry WHERE CompanyID = %s", (company_id,), commit=True)
+        for ind in [i.strip() for i in industries.split(",") if i.strip()]:
+            query_db("INSERT INTO Company_Industry (CompanyID, Industry) VALUES (%s, %s)",
+                     (company_id, ind), commit=True)
         flash("Company updated.", "success")
         return redirect(url_for("company_detail", company_id=company_id))
     return render_template("form_edit_company.html", company=company)
@@ -744,7 +769,8 @@ def edit_company(company_id):
 @app.route("/companies/<int:company_id>/delete", methods=["POST"])
 @login_required
 def delete_company(company_id):
-    query_db("DELETE FROM Company WHERE CompanyID = %s", (company_id,), commit=True)
+    uid = session.get("user_id")
+    query_db("DELETE FROM Company WHERE CompanyID = %s AND UserID = %s", (company_id, uid), commit=True)
     flash("Company deleted.", "success")
     return redirect(url_for("companies"))
 
@@ -752,7 +778,10 @@ def delete_company(company_id):
 @app.route("/companies/<int:company_id>/jobs/new", methods=["GET", "POST"])
 @login_required
 def new_job(company_id):
-    company = next((c for c in get_companies() if c.get("companyid") == company_id), None)
+    company = get_company(company_id)
+    if not company:
+        flash("Company not found.", "error")
+        return redirect(url_for("companies"))
     if request.method == "POST":
         query_db(
             """INSERT INTO Job_Posting (JobTitle, Location, Description, SalaryRange, DatePosted, ApplicationDeadline, CompanyID)
@@ -789,7 +818,12 @@ def edit_job(company_id, posting_id):
 @app.route("/companies/<int:company_id>/jobs/<int:posting_id>/delete", methods=["POST"])
 @login_required
 def delete_job(company_id, posting_id):
-    query_db("DELETE FROM Job_Posting WHERE PostingID = %s", (posting_id,), commit=True)
+    # Verify the company belongs to this user
+    company = get_company(company_id)
+    if not company:
+        flash("Company not found.", "error")
+        return redirect(url_for("companies"))
+    query_db("DELETE FROM Job_Posting WHERE PostingID = %s AND CompanyID = %s", (posting_id, company_id), commit=True)
     flash("Job posting deleted.", "success")
     return redirect(url_for("company_detail", company_id=company_id))
 
@@ -823,9 +857,9 @@ def edit_contact(contact_id):
         return redirect(url_for("companies"))
     if request.method == "POST":
         query_db(
-            "UPDATE Contact_Person SET FullName=%s, Email=%s, Phone=%s, LinkedInURL=%s WHERE ContactID=%s",
+            "UPDATE Contact_Person SET FullName=%s, Email=%s, Phone=%s, LinkedInURL=%s WHERE ContactID=%s AND UserID=%s",
             (request.form["fullname"], request.form.get("email"), request.form.get("phone"),
-             request.form.get("linkedin"), contact_id), commit=True,
+             request.form.get("linkedin"), contact_id, session.get("user_id")), commit=True,
         )
         flash("Contact updated.", "success")
         return redirect(url_for("companies"))
@@ -835,7 +869,8 @@ def edit_contact(contact_id):
 @app.route("/contacts/<int:contact_id>/delete", methods=["POST"])
 @login_required
 def delete_contact(contact_id):
-    query_db("DELETE FROM Contact_Person WHERE ContactID = %s", (contact_id,), commit=True)
+    uid = session.get("user_id")
+    query_db("DELETE FROM Contact_Person WHERE ContactID = %s AND UserID = %s", (contact_id, uid), commit=True)
     flash("Contact deleted.", "success")
     return redirect(request.referrer or url_for("companies"))
 
@@ -849,8 +884,12 @@ def delete_contact(contact_id):
 def new_interview():
     if request.method == "POST":
         app_id = int(request.form["app_id"])
+        # Verify ownership
+        if not get_application(app_id):
+            flash("Application not found.", "error")
+            return redirect(url_for("applications"))
         round_num = int(request.form.get("round_number", 1))
-        query_db(
+        res = query_db(
             """INSERT INTO Interview_Round (AppID, RoundNumber, Date, Time, Format, Feedback)
                VALUES (%s, %s, %s, %s, %s, %s)""",
             (app_id, round_num, request.form.get("date") or None,
@@ -858,6 +897,10 @@ def new_interview():
              request.form.get("feedback")), commit=True,
         )
         
+        if res is None:
+            flash("Error: Could not add interview round. Ensure the round number is unique and the date is after the application submission date.", "error")
+            return redirect(url_for("application_detail", app_id=app_id))
+            
         # Add participants if selected
         contact_ids = request.form.getlist("contact_ids")
         for cid in contact_ids:
@@ -875,6 +918,10 @@ def new_interview():
 @app.route("/interviews/<int:app_id>/<int:round_num>/edit", methods=["GET", "POST"])
 @login_required
 def edit_interview(app_id, round_num):
+    # Verify ownership through application
+    if not get_application(app_id):
+        flash("Application not found.", "error")
+        return redirect(url_for("applications"))
     interview = next((i for i in get_interviews(app_id) if i["roundnumber"] == round_num), None)
     if not interview:
         flash("Interview not found.", "error")
@@ -896,6 +943,10 @@ def edit_interview(app_id, round_num):
 @app.route("/interviews/<int:app_id>/<int:round_num>/delete", methods=["POST"])
 @login_required
 def delete_interview(app_id, round_num):
+    # Verify ownership through application
+    if not get_application(app_id):
+        flash("Application not found.", "error")
+        return redirect(url_for("applications"))
     query_db("DELETE FROM Interview_Round WHERE AppID=%s AND RoundNumber=%s", (app_id, round_num), commit=True)
     flash("Interview round deleted.", "success")
     return redirect(url_for("application_detail", app_id=app_id))
@@ -910,6 +961,10 @@ def delete_interview(app_id, round_num):
 def new_document():
     if request.method == "POST":
         app_id = int(request.form["app_id"])
+        # Verify ownership
+        if not get_application(app_id):
+            flash("Application not found.", "error")
+            return redirect(url_for("applications"))
         doc_type = request.form.get("doc_type", "Resume")
         filename_input = request.form.get("filename", "").strip()
         db_filepath = ""
@@ -953,6 +1008,10 @@ def new_document():
 @login_required
 def delete_document(doc_id):
     app_id = request.form.get("app_id", 0, type=int)
+    # Verify ownership through application
+    if app_id and not get_application(app_id):
+        flash("Application not found.", "error")
+        return redirect(url_for("applications"))
     query_db("DELETE FROM Document WHERE DocID = %s", (doc_id,), commit=True)
     flash("Document deleted.", "success")
     if app_id:
@@ -967,6 +1026,10 @@ def delete_document(doc_id):
 @app.route("/applications/<int:app_id>/notes", methods=["POST"])
 @login_required
 def add_note(app_id):
+    # Verify ownership
+    if not get_application(app_id):
+        flash("Application not found.", "error")
+        return redirect(url_for("applications"))
     note_text = request.form.get("note", "").strip()
     if not note_text:
         flash("Note cannot be empty.", "error")
@@ -982,6 +1045,10 @@ def add_note(app_id):
 @app.route("/applications/<int:app_id>/notes/delete", methods=["POST"])
 @login_required
 def delete_note(app_id):
+    # Verify ownership
+    if not get_application(app_id):
+        flash("Application not found.", "error")
+        return redirect(url_for("applications"))
     note_text = request.form.get("note", "")
     query_db(
         "DELETE FROM Application_Notes WHERE AppID = %s AND Note = %s",
@@ -1002,9 +1069,10 @@ def api_update_status(app_id):
     new_status = data.get("status")
     if not new_status:
         return jsonify({"error": "Missing status"}), 400
+    uid = session.get("user_id")
     query_db(
-        "UPDATE Application SET Status = %s WHERE AppID = %s",
-        (new_status, app_id), commit=True,
+        "UPDATE Application SET Status = %s WHERE AppID = %s AND UserID = %s",
+        (new_status, app_id, uid), commit=True,
     )
     return jsonify({"success": True, "status": new_status})
 
